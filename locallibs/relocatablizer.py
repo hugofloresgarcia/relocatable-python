@@ -125,6 +125,35 @@ def add_rpath(some_file):
         cmd = [INSTALL_NAME_TOOL, "-add_rpath", rpath, some_file]
         run(cmd)
 
+def add_bundle_rpath(some_file):
+    """adds an rpath to the file, assuming that @executable_path is the root of an app bundle"""
+    framework_loc = framework_dir(some_file)
+    rpath = (
+        os.path.join(
+            "@loader_path/../../",
+            # os.path.relpath(framework_loc, os.path.dirname(some_file)),
+        )
+    )
+    if rpath not in get_rpaths(some_file):
+        cmd = [INSTALL_NAME_TOOL, "-add_rpath", rpath, some_file]
+        run(cmd)
+
+# def add_rpath(some_file):
+#     """adds an rpath to the file"""
+#     framework_loc = framework_dir(some_file)
+    
+#     # Determine the depth of the file from the root of the framework.
+#     relative_depth = os.path.relpath(some_file, framework_loc).count(os.sep)
+    
+#     # Set rpath based on file type.
+#     if some_file.endswith(".so") or some_file.endswith(".dylib"):
+#         rpath = os.path.join("@executable_path", *([".."] * relative_depth), os.path.relpath(framework_loc, os.path.dirname(some_file))) + "/"
+#     else:  # For executables.
+#         rpath = os.path.join("@executable_path", os.path.relpath(framework_loc, os.path.dirname(some_file))) + "/"
+    
+#     if rpath not in get_rpaths(some_file):
+#         cmd = [INSTALL_NAME_TOOL, "-add_rpath", rpath, some_file]
+#         run(cmd)
 
 def get_deps(some_file):
     """Return a list of dependencies for some_file"""
@@ -264,14 +293,20 @@ def relocatablize(framework_path):
                     fix_dep(item["path"], old_install_name, new_install_name)
                     files_changed.add(item["path"])
         print()
+
+    # NOTE: we need to add the rpath to the executables AND the dylibs and so files
+    # since they also need to be able to find the framework.
     # # add rpaths to executables
     # for item in framework_data["executables"]:
     #     add_rpath(item["path"])
     #     files_changed.add(item["path"])
 
     # add rpaths to executables and dynamic libraries
+    # NOTE: this works, but we need to set the actual right path for the so files dn dylib files, 
+    # which depends on where they are installed, so we'lll have to do some path aware stuff here. 
     for item in framework_data["executables"] + framework_data["so_files"] + framework_data["dylibs"]:
         add_rpath(item["path"])
+        add_bundle_rpath(item["path"])
         files_changed.add(item["path"])
 
     return files_changed
