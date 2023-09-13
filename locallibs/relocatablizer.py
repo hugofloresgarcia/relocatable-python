@@ -264,8 +264,13 @@ def relocatablize(framework_path):
                     fix_dep(item["path"], old_install_name, new_install_name)
                     files_changed.add(item["path"])
         print()
-    # add rpaths to executables
-    for item in framework_data["executables"]:
+    # # add rpaths to executables
+    # for item in framework_data["executables"]:
+    #     add_rpath(item["path"])
+    #     files_changed.add(item["path"])
+
+    # add rpaths to executables and dynamic libraries
+    for item in framework_data["executables"] + framework_data["so_files"] + framework_data["dylibs"]:
         add_rpath(item["path"])
         files_changed.add(item["path"])
 
